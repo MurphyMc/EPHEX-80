@@ -2,6 +2,7 @@ try:
   from ephex_charset import chars, widths
 except Exception:
   # Well, at least bitmaps will work
+  pass
   
 from array import array
 import sys
