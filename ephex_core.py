@@ -1,6 +1,6 @@
 try:
   from ephex_charset import chars, widths
-except Exception:
+except ImportError:
   # Well, at least bitmaps will work
   pass
   
@@ -22,7 +22,7 @@ DOT = """<circle cx="{x}" cy="{y}" r="{r}" style="stroke-width:0px; fill-opacity
 
 
 def err_out (s):
-  print >>sys.stderr, s
+  print(s, file=sys.stderr)
 
 
 def scale (n):
@@ -66,10 +66,10 @@ class EPHEX (object):
 
     # Set functions to handle the single-character control codes
     self._codes = {}
-    for c,f in self.__class__.__dict__.iteritems():
+    for c,f in self.__class__.__dict__.items():
       if c.startswith("_code_"):
-        ch = int(c[6:], 16)
-        self._codes[chr(ch)] = getattr(self, c)
+        code = int(c[6:], 16)   # as numeric
+        self._codes[code] = getattr(self, c)
 
     # These printers have simple codes wired to some of the more
     # specific print modes.  These can be altered using <ESC>?.
@@ -130,7 +130,7 @@ class EPHEX (object):
 
   def drain (self):
     s = ''
-    for i in xrange(len(self._xs)):
+    for i in range(len(self._xs)):
       x = self._xs[i]
       y = self._ys[i]
 
@@ -146,7 +146,7 @@ class EPHEX (object):
     assert len(self._xs) == len(self._ys)
     yield SVG_HEADER.format(w=scale(8.5*72), h=scale(11*72))
 
-    for i in xrange(len(self._xs)):
+    for i in range(len(self._xs)):
       x = self._xs[i]
       y = self._ys[i]
 
@@ -165,14 +165,14 @@ class EPHEX (object):
 
   def _print (self, c):
     # Print a character
-    o = chars[ord(c)]
+    o = chars[c]
     o = o[0:10]
     x = self.x
     for col in o:
       self._stripe(col)
       self.x += PIX/2.0 #TODO: adjust based on speed?
     if self.proportional:
-      self.x = x + (widths[ord(c)])/2.0
+      self.x = x + (widths[c])/2.0
     else:
       self.x += PIX/1.0
 
@@ -193,58 +193,60 @@ class EPHEX (object):
     while True:
       c = (yield)
       if c is None: break
+      # Convert numeric code c to bytestring b;
+      # keep both for whichever is convenient.
+      b = bytes([c])
       f = self._codes.get(c)
       if f is not None:
         f()
-      elif c >= ' ' and c <= '\xf8':
+      elif c >= ord(' ') and c <= 0xf8:
         self._print(c)
-      elif c == '\x1b':
+      elif c == 0x1b:   # ESC
         c = (yield)
-        cn = ord(c)
 
         # Line Spacing
-        if c == '0':
+        if b == b'0':
           self.line_spacing = 9
-        elif c == '1':
+        elif b == b'1':
           self.line_spacing = 7
-        elif c == '2':
+        elif b == b'2':
           self.line_spacing = 12
-        elif c == 'A':
-          c = ord((yield))
+        elif b == B'A':
+          c = (yield)
           self.line_spacing = c
-        elif c == '3':
-          c = ord((yield))
+        elif b == b'3':
+          c = (yield)
           self.line_spacing = c/3.0
-        elif c == 'J':
-          c = ord((yield))/3.0
+        elif b == b'J':
+          c = (yield)/3.0
           self.y += c
-        elif c == 'j':
-          c = ord((yield))/3.0
+        elif b == b'j':
+          c = (yield)/3.0
           self.y -= c
 
-        elif c == 'p':
+        elif b == b'p':
           # Proportional
           c = (yield)
-          self.proportional = (c == '1')
+          self.proportional = (c == ord('1'))
 
         # Dot Graphics
-        elif c == "?":
+        elif b == b"?":
           c = (yield)
-          m = ord((yield))
-          if c in "KLYZ":
+          b = bytes([c])
+          m = (yield)
+          if b in b"KLYZ":
             self._graphic_modes[c] = m
           else:
             err_out("Bad code for mode alias")
         elif c == "^":
-          pass
-          #TODO: nine pin mode
-        elif c in "KLYZ*":
+          TODO# nine pin mode
+        elif b in b"KLYZ*":
           fast = False # High speed, doesn't print consecutive dots
 
           m = self._graphic_modes.get(c)
           if m is None:
-            if c == "*":
-              m = ord((yield))
+            if b == b"*":
+              m = (yield)
 
           if m == 0:
             ppi = 1.0/60
@@ -263,14 +265,14 @@ class EPHEX (object):
           elif m == 6:
             ppi = 1.0/90
 
-          n1 = ord((yield))
-          n2 = ord((yield))
+          n1 = (yield)
+          n2 = (yield)
           w = n1 + n2 * 256
 
-          for i in xrange(w):
-            c = ord((yield))
+          for i in range(w):
+            c = (yield)
             self._stripe(c)
             self.x += (ppi * 72.0)
 
         else:
-          sys.stderr.write("Don't know %X (%s).\n" % (ord(c),ord(c)))
+          sys.stderr.write("Don't know %02X (%r).\n" % (c,chr(c)))

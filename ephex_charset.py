@@ -2571,7 +2571,7 @@ def _fix ():
     c = []
     char = char.split("\n")
     shift = 1
-    for i in xrange(0, 9):
+    for i in range(0, 9):
       col = ''.join(row[i] for row in char)
       pins = 0
       for n,pin in enumerate(col):

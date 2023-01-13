@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 from ephex_core import *
 
 f = EPHEX()
@@ -39,7 +39,8 @@ def formfeed (dummy):
 f.form_feed_callback = formfeed
 
 
-data = file(sys.argv[1], 'rb').read()
+with open(sys.argv[1], 'rb') as inp:
+    data = inp.read()
 f.feed_input(data)
 
 sys.stdout.write(f.save_to_string())
