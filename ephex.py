@@ -16,7 +16,7 @@ outfile = None
 def newfile ():
   global fnum
   global outfile
-  outfile = file("%s.svg" % (fnum,), "w")
+  outfile = open("%s.svg" % (fnum,), "w")
   err_out("Opening %s" % (fnum,))
   fnum += 1
 
@@ -39,7 +39,7 @@ def formfeed (dummy):
 f.form_feed_callback = formfeed
 
 
-data = file(sys.argv[1], 'rb').read()
+data = open(sys.argv[1], 'rb').read()
 f.feed_input(data)
 
 sys.stdout.write(f.save_to_string())

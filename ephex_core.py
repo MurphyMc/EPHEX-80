@@ -21,8 +21,12 @@ DOT = """<circle cx="{x}" cy="{y}" r="{r}" style="stroke-width:0px; fill-opacity
 """
 
 
+def chrb (n):
+  return bytes([n])
+
+
 def err_out (s):
-  print >>sys.stderr, s
+  print(s, file=sys.stderr)
 
 
 def scale (n):
@@ -66,14 +70,14 @@ class EPHEX (object):
 
     # Set functions to handle the single-character control codes
     self._codes = {}
-    for c,f in self.__class__.__dict__.iteritems():
+    for c in vars(type(self)):
       if c.startswith("_code_"):
         ch = int(c[6:], 16)
-        self._codes[chr(ch)] = getattr(self, c)
+        self._codes[chrb(ch)] = getattr(self, c)
 
     # These printers have simple codes wired to some of the more
     # specific print modes.  These can be altered using <ESC>?.
-    self._graphic_modes = {"K":0,"L":1,"Y":2,"Z":3}
+    self._graphic_modes = {b'K':0,b'L':1,b'Y':2,b'Z':3}
 
 
     # Initialize the generator used for the state machine
@@ -113,7 +117,7 @@ class EPHEX (object):
   def save (self, file_or_name):
     close = False
     if isinstance(file_or_name, str):
-      file_or_name = file(file_or_name, "w")
+      file_or_name = open(file_or_name, "w")
       close = True
 
     for p in self._save_generator():
@@ -130,7 +134,7 @@ class EPHEX (object):
 
   def drain (self):
     s = ''
-    for i in xrange(len(self._xs)):
+    for i in range(len(self._xs)):
       x = self._xs[i]
       y = self._ys[i]
 
@@ -146,7 +150,7 @@ class EPHEX (object):
     assert len(self._xs) == len(self._ys)
     yield SVG_HEADER.format(w=scale(8.5*72), h=scale(11*72))
 
-    for i in xrange(len(self._xs)):
+    for i in range(len(self._xs)):
       x = self._xs[i]
       y = self._ys[i]
 
@@ -181,7 +185,7 @@ class EPHEX (object):
     Feed some data (print instructions), which may produce some output.
     """
     for d in data:
-      self._g.send(d)
+      self._g.send(chrb(d))
 
 
   def _feed_input (self):
@@ -196,54 +200,54 @@ class EPHEX (object):
       f = self._codes.get(c)
       if f is not None:
         f()
-      elif c >= ' ' and c <= '\xf8':
+      elif c >= b' ' and c <= b'\xf8':
         self._print(c)
-      elif c == '\x1b':
+      elif c == b'\x1b':
         c = (yield)
         cn = ord(c)
 
         # Line Spacing
-        if c == '0':
+        if c == b'0':
           self.line_spacing = 9
-        elif c == '1':
+        elif c == b'1':
           self.line_spacing = 7
-        elif c == '2':
+        elif c == b'2':
           self.line_spacing = 12
-        elif c == 'A':
+        elif c == b'A':
           c = ord((yield))
           self.line_spacing = c
-        elif c == '3':
+        elif c == b'3':
           c = ord((yield))
           self.line_spacing = c/3.0
-        elif c == 'J':
+        elif c == b'J':
           c = ord((yield))/3.0
           self.y += c
-        elif c == 'j':
+        elif c == b'j':
           c = ord((yield))/3.0
           self.y -= c
 
-        elif c == 'p':
+        elif c == b'p':
           # Proportional
           c = (yield)
-          self.proportional = (c == '1')
+          self.proportional = (c == b'1')
 
         # Dot Graphics
-        elif c == "?":
+        elif c == b'?':
           c = (yield)
           m = ord((yield))
-          if c in "KLYZ":
+          if c in b'KLYZ':
             self._graphic_modes[c] = m
           else:
             err_out("Bad code for mode alias")
-        elif c == "^":
+        elif c == b'^':
           pass
           #TODO: nine pin mode
-        elif c in "KLYZ*":
+        elif c in b'KLYZ*':
           fast = False # High speed, doesn't print consecutive dots
 
           m = self._graphic_modes.get(c)
           if m is None:
-            if c == "*":
+            if c == b'*':
               m = ord((yield))
 
           if m == 0:
@@ -267,7 +271,7 @@ class EPHEX (object):
           n2 = ord((yield))
           w = n1 + n2 * 256
 
-          for i in xrange(w):
+          for i in range(w):
             c = ord((yield))
             self._stripe(c)
             self.x += (ppi * 72.0)
