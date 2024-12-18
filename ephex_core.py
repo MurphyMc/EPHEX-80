@@ -3,7 +3,7 @@ try:
 except Exception:
   # Well, at least bitmaps will work
   pass
-  
+
 from array import array
 import sys
 

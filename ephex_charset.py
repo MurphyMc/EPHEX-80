@@ -2585,7 +2585,7 @@ def _fix ():
     #       ', '.join("0x%02X" % (x,) for x in c) + ", 0x00, 0x00" +
     #       (" ],\t# Char 0x%02X" % (char_num)))
     #print "  [",
-    #print "0x80," if shift == 1 else "0x00,", 
+    #print "0x80," if shift == 1 else "0x00,",
     #print ', '.join("0x%02x" % (x,) for x in c) + ", 0x00, 0x00",
     #print "], # Char 0x%02x %i" % (char_num,char_num)
     chars.append(c)
